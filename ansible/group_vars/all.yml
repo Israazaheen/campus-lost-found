@@ -30,7 +30,7 @@ log_dir:        "/var/log/campus-lost-found"
 
 # ── Node.js installation ──────────────────────────────────────────────────────
 # NodeSource LTS major version to install.
-nodejs_version: "20"
+nodejs_version: "24"
 
 # ── Nginx ─────────────────────────────────────────────────────────────────────
 # The domain or IP address Nginx will listen on.
@@ -43,4 +43,4 @@ pm2_ecosystem_config: "{{ deploy_dir }}/ecosystem.config.js"
 
 # Full path to pm2-runtime binary installed globally by npm.
 # This is the standard path when npm global prefix is /usr/local.
-pm2_runtime_bin: "/usr/local/bin/pm2-runtime"
+pm2_runtime_bin: "/usr/bin/pm2-runtime"

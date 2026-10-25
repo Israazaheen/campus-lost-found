@@ -137,7 +137,7 @@
       ansible.builtin.user:
         name:       "{{ app_user }}"
         group:      "{{ app_group }}"
-        home:       "{{ deploy_dir }}"
+        home:       /home/nodeapp
         shell:      /bin/bash
         system:     true
         create_home: true
