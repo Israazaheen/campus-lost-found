@@ -7,6 +7,6 @@
  */
 module.exports = {
   appName:           'Campus Lost & Found',
-  version:           '1.0.0',
-  deploymentMessage: 'Deployment demonstration version 1.0.0',
+  version:           '1.1.0',
+  deploymentMessage: 'Deployment update successful — version 1.1.0',
 };
