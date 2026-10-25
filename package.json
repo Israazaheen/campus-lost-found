@@ -1,0 +1,20 @@
+{
+  "name": "campus-lost-found",
+  "version": "1.0.0",
+  "description": "Campus Lost & Found Board — college project demonstrating Node.js deployment with Ansible.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev":   "node app.js"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm":  ">=9.0.0"
+  },
+  "keywords": ["campus", "lost-found", "ansible", "devops", "college-project"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

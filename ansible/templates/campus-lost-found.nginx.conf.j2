@@ -1,0 +1,56 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Jinja2 template: Nginx reverse proxy for Campus Lost & Found
+# Rendered by Ansible and deployed to /etc/nginx/sites-available/{{ app_name }}
+# ─────────────────────────────────────────────────────────────────────────────
+
+server {
+    listen 80;
+    server_name {{ nginx_server_name }};
+
+    # ── Logging ──────────────────────────────────────────────────────────────
+    access_log /var/log/nginx/{{ app_name }}-access.log;
+    error_log  /var/log/nginx/{{ app_name }}-error.log;
+
+    # ── Security headers ──────────────────────────────────────────────────────
+    add_header X-Content-Type-Options "nosniff"         always;
+    add_header X-Frame-Options        "SAMEORIGIN"       always;
+    add_header X-XSS-Protection       "1; mode=block"   always;
+    add_header Referrer-Policy        "no-referrer-when-downgrade" always;
+
+    # ── Proxy to Node.js application ──────────────────────────────────────────
+    location / {
+        proxy_pass         http://127.0.0.1:{{ app_port }};
+
+        # Pass real client information to the application.
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+
+        # Connection timeouts — generous for a demo environment.
+        proxy_connect_timeout 10s;
+        proxy_send_timeout    30s;
+        proxy_read_timeout    30s;
+
+        # Disable Nginx's own buffering so responses stream through promptly.
+        proxy_buffering    off;
+
+        # Allow WebSocket upgrades if needed in future.
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade    $http_upgrade;
+        proxy_set_header   Connection "upgrade";
+    }
+
+    # ── Health and API endpoints pass through unchanged ───────────────────────
+    location ~ ^/(health|version|api)/ {
+        proxy_pass http://127.0.0.1:{{ app_port }};
+        proxy_set_header Host            $host;
+        proxy_set_header X-Real-IP       $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # ── Block dot-files ───────────────────────────────────────────────────────
+    location ~ /\. {
+        deny all;
+    }
+}

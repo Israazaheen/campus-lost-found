@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Campus Lost & Found Board — report lost items or browse found items on campus." />
+  <title>Campus Lost &amp; Found</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ── Navbar ── -->
+  <header class="navbar">
+    <div class="container navbar__inner">
+      <a href="#" class="navbar__brand">
+        <span class="navbar__icon" aria-hidden="true">&#128269;</span>
+        Campus Lost &amp; Found
+      </a>
+      <nav class="navbar__links" aria-label="Site navigation">
+        <a href="#items-section">Browse Items</a>
+        <a href="#report-section" class="btn btn--outline-nav">Report an Item</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── Hero ── -->
+  <section class="hero" aria-labelledby="hero-heading">
+    <div class="container hero__inner">
+      <div class="hero__text">
+        <h1 id="hero-heading" class="hero__heading">Lost something?<br>Found something?</h1>
+        <p class="hero__sub">
+          The Campus Lost &amp; Found Board helps students reunite with their belongings.
+          Browse reported items below or submit a report so someone can help you out.
+        </p>
+        <a href="#report-section" class="btn btn--primary">Report an Item</a>
+      </div>
+      <div class="hero__illustration" aria-hidden="true">
+        <div class="hero__graphic">
+          <span class="hero__emoji">&#127381;</span>
+          <span class="hero__emoji hero__emoji--sm">&#128241;</span>
+          <span class="hero__emoji hero__emoji--sm">&#127358;</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Items list ── -->
+  <main>
+    <section class="items-section" id="items-section" aria-labelledby="items-heading">
+      <div class="container">
+        <div class="section-header">
+          <h2 id="items-heading">Reported Items</h2>
+          <p class="section-sub">Items submitted by students — newest first.</p>
+        </div>
+
+        <!-- Loading / empty states -->
+        <div id="items-loading" class="state-message" role="status" aria-live="polite">
+          Loading items&hellip;
+        </div>
+        <div id="items-empty" class="state-message state-message--empty" hidden>
+          No items reported yet. Be the first to submit one below!
+        </div>
+
+        <div id="items-grid" class="items-grid" role="list" aria-label="Reported lost and found items">
+          <!-- Cards injected by app.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Report form ── -->
+    <section class="report-section" id="report-section" aria-labelledby="report-heading">
+      <div class="container">
+        <div class="section-header">
+          <h2 id="report-heading">Report an Item</h2>
+          <p class="section-sub">Fill in the form below and your item will appear on the board instantly.</p>
+        </div>
+
+        <div class="form-card">
+          <!-- Feedback banners -->
+          <div id="form-success" class="alert alert--success" role="alert" hidden>
+            &#10003;&nbsp; Item reported successfully! It has been added to the board above.
+          </div>
+          <div id="form-error" class="alert alert--error" role="alert" hidden></div>
+
+          <form id="report-form" novalidate>
+            <div class="form-group">
+              <label for="item-name" class="form-label">Item Name <span class="required" aria-hidden="true">*</span></label>
+              <input
+                id="item-name"
+                name="name"
+                type="text"
+                class="form-input"
+                placeholder="e.g. Blue water bottle"
+                maxlength="120"
+                required
+                autocomplete="off"
+              />
+              <span class="field-error" id="item-name-error" role="alert"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="item-description" class="form-label">Description <span class="required" aria-hidden="true">*</span></label>
+              <textarea
+                id="item-description"
+                name="description"
+                class="form-input form-textarea"
+                placeholder="Describe the item — colour, brand, where it was lost or found…"
+                maxlength="500"
+                rows="4"
+                required
+              ></textarea>
+              <span class="field-error" id="item-description-error" role="alert"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="item-status" class="form-label">Status <span class="required" aria-hidden="true">*</span></label>
+              <select id="item-status" name="status" class="form-input form-select" required>
+                <option value="">— Select status —</option>
+                <option value="Lost">Lost</option>
+                <option value="Found">Found</option>
+              </select>
+              <span class="field-error" id="item-status-error" role="alert"></span>
+            </div>
+
+            <button type="submit" class="btn btn--primary btn--submit" id="submit-btn">
+              Submit Report
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── Footer ── -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <p class="footer__brand">Campus Lost &amp; Found</p>
+      <p class="footer__meta" id="footer-version-msg">
+        <!-- Populated by app.js from /version endpoint -->
+        Deployment demonstration version 1.0.0
+      </p>
+      <p class="footer__credit">A college project &mdash; Node.js &middot; Express &middot; Ansible &middot; PM2 &middot; Nginx</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

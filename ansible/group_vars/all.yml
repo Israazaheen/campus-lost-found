@@ -1,0 +1,46 @@
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# group_vars/all.yml — All variables for the Campus Lost & Found deployment
+#
+# Edit the values in this file to match your environment.
+# This file IS committed to Git. Do not place secrets or passwords here.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Application identity ──────────────────────────────────────────────────────
+app_name:    "campus-lost-found"
+app_port:    3000
+
+# ── Git source ────────────────────────────────────────────────────────────────
+# Replace with your actual GitHub repository URL before running the playbook.
+git_repo_url: "https://github.com/YOUR_USERNAME/campus-lost-found.git"
+
+# Change this to "demo-update" when performing the live update demonstration.
+git_branch:   "main"
+
+# ── Server filesystem ─────────────────────────────────────────────────────────
+# Dedicated non-root user that will own and run the application.
+app_user:       "nodeapp"
+app_group:      "nodeapp"
+
+# Directory where the application will be deployed.
+deploy_dir:     "/opt/campus-lost-found"
+
+# Log directory (created by the playbook).
+log_dir:        "/var/log/campus-lost-found"
+
+# ── Node.js installation ──────────────────────────────────────────────────────
+# NodeSource LTS major version to install.
+nodejs_version: "20"
+
+# ── Nginx ─────────────────────────────────────────────────────────────────────
+# The domain or IP address Nginx will listen on.
+# Use "_" to accept all hostnames (fine for a demo/single-server setup).
+nginx_server_name: "_"
+
+# ── PM2 ──────────────────────────────────────────────────────────────────────
+# Full path to the PM2 ecosystem config inside the deploy directory.
+pm2_ecosystem_config: "{{ deploy_dir }}/ecosystem.config.js"
+
+# Full path to pm2-runtime binary installed globally by npm.
+# This is the standard path when npm global prefix is /usr/local.
+pm2_runtime_bin: "/usr/local/bin/pm2-runtime"

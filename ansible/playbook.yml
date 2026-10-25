@@ -1,0 +1,297 @@
+---
+# =============================================================================
+# Campus Lost & Found — Ansible Playbook
+# Target: Ubuntu/Debian server
+# Usage:
+#   Full deployment  : ansible-playbook -i inventory.ini playbook.yml
+#   Code-only update : ansible-playbook -i inventory.ini playbook.yml --tags deploy
+# =============================================================================
+
+- name: Deploy Campus Lost & Found Application
+  hosts: webservers
+  become: true          # Privilege escalation for system-level tasks
+
+  vars_files:
+    - group_vars/all.yml
+
+  handlers:
+
+    - name: reload nginx
+      ansible.builtin.service:
+        name:  nginx
+        state: reloaded
+
+    - name: restart app service
+      ansible.builtin.systemd:
+        name:    "{{ app_name }}"
+        state:   restarted
+        daemon_reload: true
+
+  # ── Pre-flight ──────────────────────────────────────────────────────────────
+  pre_tasks:
+
+    - name: "PREFLIGHT | Verify target host is reachable"
+      ansible.builtin.ping:
+      tags: [setup, configure, deploy]
+
+    - name: "PREFLIGHT | Gather minimal facts"
+      ansible.builtin.setup:
+        gather_subset:
+          - "!all"
+          - "min"
+      tags: [setup, configure, deploy]
+
+  tasks:
+
+    # ── 1. System packages ──────────────────────────────────────────────────
+    - name: "SETUP | Update apt cache"
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      tags: [setup]
+
+    - name: "SETUP | Install prerequisite packages"
+      ansible.builtin.apt:
+        name:
+          - git
+          - curl
+          - gnupg
+          - nginx
+          - build-essential
+        state: present
+      tags: [setup]
+
+    # ── 2. Node.js via NodeSource ───────────────────────────────────────────
+    - name: "SETUP | Check if NodeSource apt key already exists"
+      ansible.builtin.stat:
+        path: /etc/apt/keyrings/nodesource.gpg
+      register: nodesource_key
+      tags: [setup]
+
+    - name: "SETUP | Add NodeSource GPG key"
+      ansible.builtin.shell: |
+        curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+          | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+      args:
+        creates: /etc/apt/keyrings/nodesource.gpg
+      tags: [setup]
+
+    - name: "SETUP | Add NodeSource repository"
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [signed-by=/etc/apt/keyrings/nodesource.gpg]
+          https://deb.nodesource.com/node_{{ nodejs_version }}.x nodistro main
+        state:    present
+        filename: nodesource
+      tags: [setup]
+
+    - name: "SETUP | Install Node.js"
+      ansible.builtin.apt:
+        name:         nodejs
+        state:        present
+        update_cache: true
+      tags: [setup]
+
+    - name: "SETUP | Verify Node.js installation"
+      ansible.builtin.command: node --version
+      register: node_version_out
+      changed_when: false
+      tags: [setup]
+
+    - name: "SETUP | Show Node.js version"
+      ansible.builtin.debug:
+        msg: "Node.js version: {{ node_version_out.stdout }}"
+      tags: [setup]
+
+    # ── 3. Install PM2 globally ─────────────────────────────────────────────
+    - name: "SETUP | Install PM2 globally via npm"
+      community.general.npm:
+        name:    pm2
+        global:  true
+        state:   present
+      tags: [setup]
+
+    - name: "SETUP | Verify PM2 runtime binary exists"
+      ansible.builtin.stat:
+        path: "{{ pm2_runtime_bin }}"
+      register: pm2_bin_stat
+      tags: [setup]
+
+    - name: "SETUP | Fail if pm2-runtime not found"
+      ansible.builtin.fail:
+        msg: >
+          pm2-runtime not found at {{ pm2_runtime_bin }}.
+          Check that PM2 installed correctly and update pm2_runtime_bin in group_vars/all.yml.
+      when: not pm2_bin_stat.stat.exists
+      tags: [setup]
+
+    # ── 4. Application user and directories ────────────────────────────────
+    - name: "CONFIGURE | Create dedicated application group"
+      ansible.builtin.group:
+        name:  "{{ app_group }}"
+        state: present
+        system: true
+      tags: [configure]
+
+    - name: "CONFIGURE | Create dedicated application user"
+      ansible.builtin.user:
+        name:       "{{ app_user }}"
+        group:      "{{ app_group }}"
+        home:       "{{ deploy_dir }}"
+        shell:      /bin/bash
+        system:     true
+        create_home: true
+        state:      present
+      tags: [configure]
+
+    - name: "CONFIGURE | Create deployment directory"
+      ansible.builtin.file:
+        path:  "{{ deploy_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode:  "0755"
+      tags: [configure]
+
+    - name: "CONFIGURE | Create log directory"
+      ansible.builtin.file:
+        path:  "{{ log_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode:  "0755"
+      tags: [configure]
+
+    # ── 5. Clone / pull repository ──────────────────────────────────────────
+    - name: "DEPLOY | Pull repository (branch: {{ git_branch }})"
+      ansible.builtin.git:
+        repo:    "{{ git_repo_url }}"
+        dest:    "{{ deploy_dir }}"
+        version: "{{ git_branch }}"
+        force:   true
+        depth:   1
+      become_user: "{{ app_user }}"
+      register: git_result
+      tags: [deploy]
+
+    - name: "DEPLOY | Show git status"
+      ansible.builtin.debug:
+        msg: "Git changed: {{ git_result.changed }} | Commit: {{ git_result.after | default('N/A') }}"
+      tags: [deploy]
+
+    # ── 6. Install npm dependencies ─────────────────────────────────────────
+    - name: "DEPLOY | Run npm ci (clean install from lockfile)"
+      ansible.builtin.command:
+        cmd:   npm ci --omit=dev
+        chdir: "{{ deploy_dir }}"
+      become_user: "{{ app_user }}"
+      when: git_result.changed
+      register: npm_result
+      changed_when: npm_result.rc == 0
+      tags: [deploy]
+
+    # ── 7. Systemd service from Jinja2 template ─────────────────────────────
+    - name: "CONFIGURE | Deploy systemd service unit"
+      ansible.builtin.template:
+        src:   "templates/campus-lost-found.service.j2"
+        dest:  "/etc/systemd/system/{{ app_name }}.service"
+        owner: root
+        group: root
+        mode:  "0644"
+      notify: restart app service
+      tags: [configure]
+
+    # ── 8. Nginx configuration from Jinja2 template ─────────────────────────
+    - name: "CONFIGURE | Deploy Nginx site config"
+      ansible.builtin.template:
+        src:   "templates/campus-lost-found.nginx.conf.j2"
+        dest:  "/etc/nginx/sites-available/{{ app_name }}"
+        owner: root
+        group: root
+        mode:  "0644"
+      notify: reload nginx
+      tags: [configure]
+
+    - name: "CONFIGURE | Enable Nginx site (create symlink)"
+      ansible.builtin.file:
+        src:   "/etc/nginx/sites-available/{{ app_name }}"
+        dest:  "/etc/nginx/sites-enabled/{{ app_name }}"
+        state: link
+      notify: reload nginx
+      tags: [configure]
+
+    - name: "CONFIGURE | Remove default Nginx site"
+      ansible.builtin.file:
+        path:  /etc/nginx/sites-enabled/default
+        state: absent
+      notify: reload nginx
+      tags: [configure]
+
+    - name: "CONFIGURE | Validate Nginx configuration"
+      ansible.builtin.command: nginx -t
+      changed_when: false
+      tags: [configure]
+
+    # ── 9. Enable and start services ────────────────────────────────────────
+    - name: "CONFIGURE | Enable and start application service"
+      ansible.builtin.systemd:
+        name:          "{{ app_name }}"
+        state:         started
+        enabled:       true
+        daemon_reload: true
+      tags: [configure]
+
+    - name: "CONFIGURE | Enable and start Nginx"
+      ansible.builtin.service:
+        name:    nginx
+        state:   started
+        enabled: true
+      tags: [configure]
+
+    # ── 10. Deploy-tag: restart service after code update ───────────────────
+    #  Only runs when triggered by a code-only update (--tags deploy).
+    #  The handler "restart app service" fires if the git checkout changed.
+    - name: "DEPLOY | Notify service restart after code update"
+      ansible.builtin.debug:
+        msg: "Code updated — triggering application service restart."
+      notify: restart app service
+      when: git_result.changed
+      changed_when: git_result.changed
+      tags: [deploy]
+
+    # ── 11. Post-deployment verification ────────────────────────────────────
+    - name: "DEPLOY | Wait for application to be reachable"
+      ansible.builtin.wait_for:
+        host:    127.0.0.1
+        port:    "{{ app_port }}"
+        delay:   3
+        timeout: 30
+      tags: [deploy]
+
+    - name: "DEPLOY | Health check via /health endpoint"
+      ansible.builtin.uri:
+        url:            "http://127.0.0.1:{{ app_port }}/health"
+        method:         GET
+        status_code:    200
+        return_content: true
+      register: health_response
+      tags: [deploy]
+
+    - name: "DEPLOY | Show health response"
+      ansible.builtin.debug:
+        msg: "Health: {{ health_response.json }}"
+      tags: [deploy]
+
+    - name: "DEPLOY | Version check via /version endpoint"
+      ansible.builtin.uri:
+        url:            "http://127.0.0.1:{{ app_port }}/version"
+        method:         GET
+        status_code:    200
+        return_content: true
+      register: version_response
+      tags: [deploy]
+
+    - name: "DEPLOY | Show version"
+      ansible.builtin.debug:
+        msg: "Version: {{ version_response.json }}"
+      tags: [deploy]

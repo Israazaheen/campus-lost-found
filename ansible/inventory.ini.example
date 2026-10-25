@@ -1,0 +1,25 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Ansible Inventory — EXAMPLE FILE
+# Copy this file to inventory.ini, fill in your real server details,
+# and DO NOT commit the real inventory.ini to Git (it is in .gitignore).
+# ─────────────────────────────────────────────────────────────────────────────
+
+[webservers]
+# Replace with your Ubuntu server's IP address or hostname.
+# Example: 192.168.1.100  or  myserver.example.com
+YOUR_SERVER_IP_HERE
+
+[webservers:vars]
+# SSH username on the Ubuntu server (usually "ubuntu" for cloud VMs).
+ansible_user = ubuntu
+
+# Path to your private SSH key on the deployment laptop.
+# Use a path that exists on YOUR friend's laptop, not yours.
+ansible_ssh_private_key_file = ~/.ssh/id_rsa
+
+# Optional: force SSH port if not standard.
+# ansible_port = 22
+
+# Uncomment if the server uses a password instead of a key (not recommended):
+# ansible_password = YOUR_PASSWORD
+# ansible_become_password = YOUR_SUDO_PASSWORD

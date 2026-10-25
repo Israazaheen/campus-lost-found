@@ -1,0 +1,48 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Jinja2 template: systemd service unit for Campus Lost & Found
+#
+# Design: systemd supervises pm2-runtime which runs the application directly.
+# pm2-runtime is a process manager front-end for PM2 designed specifically
+# for use inside process supervisors (Docker, systemd). It does NOT daemonise;
+# it runs in the foreground so systemd tracks the PID correctly.
+#
+# References:
+#   https://pm2.keymetrics.io/docs/usage/pm2-runtime/
+#   https://www.freedesktop.org/software/systemd/man/systemd.service.html
+# ─────────────────────────────────────────────────────────────────────────────
+
+[Unit]
+Description={{ app_name }} Node.js application (managed by PM2 runtime)
+Documentation=https://github.com/YOUR_USERNAME/campus-lost-found
+After=network.target
+
+[Service]
+Type=simple
+User={{ app_user }}
+Group={{ app_group }}
+WorkingDirectory={{ deploy_dir }}
+
+# pm2-runtime runs in the foreground — systemd tracks it directly.
+ExecStart={{ pm2_runtime_bin }} start {{ pm2_ecosystem_config }}
+
+# Graceful stop: send SIGTERM to pm2-runtime; it propagates to the app.
+ExecStop=/bin/kill -SIGTERM $MAINPID
+
+# Restart the service if it crashes; back off quickly so demos recover fast.
+Restart=on-failure
+RestartSec=5s
+
+# Environment
+Environment=NODE_ENV=production
+Environment=PORT={{ app_port }}
+
+# Security: limit privilege escalation from within the process.
+NoNewPrivileges=true
+
+# Logging goes to journald (use: journalctl -u {{ app_name }} -f)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier={{ app_name }}
+
+[Install]
+WantedBy=multi-user.target

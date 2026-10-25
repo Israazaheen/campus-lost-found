@@ -1,0 +1,35 @@
+# Dependency directories — never commit these
+node_modules/
+npm-debug.log*
+
+# Real inventory file — contains server IP and SSH key paths
+ansible/inventory.ini
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Log files
+*.log
+logs/
+
+# Runtime / pid files
+*.pid
+*.seed
+
+# OS / build artefacts
+Thumbs.db
+dist/
+build/
