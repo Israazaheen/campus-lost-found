@@ -12,7 +12,7 @@ app_port:    3000
 
 # ── Git source ────────────────────────────────────────────────────────────────
 # Replace with your actual GitHub repository URL before running the playbook.
-git_repo_url: "https://github.com/YOUR_USERNAME/campus-lost-found.git"
+git_repo_url: "https://github.com/Israazaheen/campus-lost-found.git"
 
 # Change this to "demo-update" when performing the live update demonstration.
 git_branch:   "main"
